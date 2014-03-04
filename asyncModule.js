@@ -25,20 +25,24 @@ AsyncModule = function(){
 	}
 
 	function handlerCustomJSONPEvent(options){
-		var finalHandler = function(event){
-			response = event
-			responseText = event.detail.JSONPdata
-			if (options.callback != null && options.scope != null){
-				options.callback.call(options.scope, responseText)
+			var finalHandler = function(event){
+				var args
+				response = event
+				responseText = event.detail.JSONPdata
+				args = [responseText]
+				args = args.concat(options.arguments)
+				
+				if (options.callback != null && options.scope != null){
+					options.callback.apply(options.scope, args)
+				}
+				//these next two lines may casue issues when there are multiple instances of the this module making JSONP requests
+				//delete window.handlerAsyncModule //potential RACE CONDITION if multiple events fired quickly, as well
+				window.removeEventListener('JSONP-LOADED', finalHandler, false)
 			}
-			//these next two lines may casue issues when there are multiple instances of the this module making JSONP requests
-			//delete window.handlerAsyncModule //potential RACE CONDITION if multiple events fired quickly, as well
-			window.removeEventListener('JSONP-LOADED', finalHandler, false)
-		}
 
-		//the actual handler is finalHandler
-		return finalHandler
-	}
+			//the actual handler is finalHandler
+			return finalHandler
+		}
 
 	function loadJSONP(url, options){
 		//attaching an event listener to the global scope to handle a custom event			
